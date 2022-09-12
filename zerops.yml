@@ -40,10 +40,12 @@ storefront:
     prepare:
       - npm install -g pnpm@7.5.2
     build:
-      - pnpm install
-      - pnpm run generate
-      - pnpm run build:storefront
-      - sleep 300
+      - |
+        cd react-storefront
+        pnpm install
+        pnpm run generate
+        pnpm run build:storefront
+        sleep 300
     deploy:
       - .env
       - react-storefront/apps/storefront/~/dist
@@ -64,10 +66,12 @@ checkout:
     prepare:
       - npm install -g pnpm@7.5.2
     build:
-      - pnpm install
-      - pnpm run generate
-      - pnpm run build:saleor-app-checkout
-      - sleep 300
+      - |
+        cd react-storefront
+        pnpm install
+        pnpm run generate
+        pnpm run build:saleor-app-checkout
+        sleep 300
     deploy:
       - .env
       - react-storefront/apps/saleor-app-checkout/~/dist
