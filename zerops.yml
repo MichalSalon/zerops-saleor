@@ -4,6 +4,7 @@ api:
     prepare: &install-docker
       - apt update
       - apt install docker docker-compose -y
+      - sudo systemctl start docker
     build:
       - |
         cd saleor
@@ -24,7 +25,7 @@ worker:
     build:
       - |
         cd saleor
-        docker build STATIC_URL="/static/" -t saleor-prod .
+        docker build --build-arg STATIC_URL="/static/" -t saleor-prod .
         docker image save -o saleor-docker-image.tar saleor-prod
     deploy: [ saleor/~, docker-compose.yml ]
     cache: [ docker-compose.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
