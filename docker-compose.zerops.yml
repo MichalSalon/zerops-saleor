@@ -1,0 +1,40 @@
+version: "3.4"
+
+services:
+  api:
+    image: saleor-prod
+    network_mode: "host"
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./saleor/:/app/saleor:Z
+      - ./templates/:/app/templates:Z
+      - ./tests/:/app/tests
+      # shared volume between worker and api for media # TODO: FUCK
+      - saleor-media:/app/media
+    command: python manage.py runserver 0.0.0.0:8000
+
+  worker:
+    image: saleor-prod
+    network_mode: "host"
+    command: celery -A saleor --app=saleor.celeryconf:app worker --loglevel=info -B
+    restart: unless-stopped
+    volumes:
+      - ./saleor/:/app/saleor:Z,cached
+      - ./templates/:/app/templates:Z,cached
+      # shared volume between worker and api for media
+      - saleor-media:/app/media
+
+  jaeger:
+    network_mode: "host"
+    image: jaegertracing/all-in-one
+    restart: unless-stopped
+
+  mailhog:
+    network_mode: "host"
+    image: mailhog/mailhog
+    restart: unless-stopped
+
+volumes:
+  saleor-media:

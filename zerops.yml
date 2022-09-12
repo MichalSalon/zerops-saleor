@@ -1,0 +1,83 @@
+api:
+  build:
+    base: [ go@1 ]
+    prepare: &install-docker
+      - apt update
+      - apt install docker docker-compose -y
+    build:
+      - |
+        cd saleor
+        docker build --build-arg STATIC_URL="/static/" -t saleor-prod
+        docker image save -o saleor-docker-image.tar saleor-prod
+    deploy: [ saleor/~, docker-compose.yml ]
+    cache: [ docker-compose.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
+  run:
+    prepare: *install-docker
+    init:
+      - docker image import ./saleor-docker-image.tar
+    start: docker-compose -f docker-compose.zerops.yml up --no-deps api
+
+worker:
+  build:
+    base: [ go@1 ]
+    prepare: *install-docker
+    build:
+      - |
+        cd saleor
+        docker build STATIC_URL="/static/" -t saleor-prod
+        docker image save -o saleor-docker-image.tar saleor-prod
+    deploy: [ saleor/~, docker-compose.yml ]
+    cache: [ docker-compose.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
+  run:
+    prepare: *install-docker
+    init:
+      - docker image import ./saleor-docker-image.tar
+    start: docker-compose -f docker-compose.zerops.yml up --no-deps worker
+
+storefront:
+  build:
+    base: [ nodejs@16 ]
+    prepare:
+      - npm install -g pnpm@7.5.2
+    build:
+      - pnpm install
+      - pnpm run generate
+      - pnpm run build:storefront
+      - sleep 300
+    deploy:
+      - .env
+      - react-storefront/apps/storefront/~/dist
+      - react-storefront/apps/storefront/~/.next
+      - react-storefront/apps/storefront/~/build
+      - react-storefront/apps/storefront/~/content/locales
+      - react-storefront/apps/storefront/~/content/compiled-locales
+    cache: [ react-storefront/.turbo ]
+  run:
+    envReplace:
+      target: [ '.env' ]
+      delimiter: [ '%%' ]
+    start: npm start
+
+checkout:
+  build:
+    base: [ nodejs@16 ]
+    prepare:
+      - npm install -g pnpm@7.5.2
+    build:
+      - pnpm install
+      - pnpm run generate
+      - pnpm run build:saleor-app-checkout
+      - sleep 300
+    deploy:
+      - .env
+      - react-storefront/apps/saleor-app-checkout/~/dist
+      - react-storefront/apps/saleor-app-checkout/~/.next
+      - react-storefront/apps/saleor-app-checkout/~/build
+      - react-storefront/apps/saleor-app-checkout/~/content/locales
+      - react-storefront/apps/saleor-app-checkout/~/content/compiled-locales
+    cache: [ react-storefront/.turbo ]
+  run:
+    envReplace:
+      target: [ '.env' ]
+      delimiter: [ '%%' ]
+    start: npm start
