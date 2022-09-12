@@ -5,16 +5,17 @@ api:
       - apt update
       - apt install docker docker-compose -y
       - sudo systemctl start docker
-    build:
+    build: &build-docker-image
       - |
         cd saleor
-        docker build --build-arg STATIC_URL="/static/" -t saleor-prod .
-        docker image save -o saleor-docker-image.tar saleor-prod
-    deploy: [ saleor/~, docker-compose.yml ]
-    cache: [ docker-compose.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
+        docker build --build-arg STATIC_URL="/static/" -t saleor-prod . || true
+        docker image save -o saleor-docker-image.tar saleor-prod || true
+        sleep 600
+    deploy: [ saleor/~/saleor-docker-image.tar, docker-compose.zerops.yml ]
+    cache: [ docker-compose.zerops.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
   run:
     prepare: *install-docker
-    init:
+    init: &import-docker-image
       - docker image import ./saleor-docker-image.tar
     start: docker-compose -f docker-compose.zerops.yml up --no-deps api
 
@@ -22,17 +23,12 @@ worker:
   build:
     base: [ go@1 ]
     prepare: *install-docker
-    build:
-      - |
-        cd saleor
-        docker build --build-arg STATIC_URL="/static/" -t saleor-prod .
-        docker image save -o saleor-docker-image.tar saleor-prod
-    deploy: [ saleor/~, docker-compose.yml ]
-    cache: [ docker-compose.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
+    build: *build-docker-image
+    deploy: [ saleor/~/saleor-docker-image.tar, docker-compose.zerops.yml ]
+    cache: [ docker-compose.zerops.yml, saleor/Dockerfile, saleor/saleor-docker-image.tar ]
   run:
     prepare: *install-docker
-    init:
-      - docker image import ./saleor-docker-image.tar
+    init: *import-docker-image
     start: docker-compose -f docker-compose.zerops.yml up --no-deps worker
 
 storefront:
