@@ -39,15 +39,12 @@ storefront:
     base: [ nodejs@16 ]
     prepare:
       - npm install -g pnpm@7.5.2
-    build:
+    build: # pnpm run generate
       - |
-        pwd
-        ls -lah
         cd react-storefront
-        pwd
-        pnpm install --prod --frozen-lockfile
-        pnpm run generate
+        pnpm install --frozen-lockfile
         pnpm run build:storefront
+        npm run build:saleor-app-checkout
         sleep 300
     deploy:
       - .env
@@ -68,14 +65,12 @@ checkout:
     base: [ nodejs@16 ]
     prepare:
       - npm install -g pnpm@7.5.2
-    build:
+    build: # pnpm run generate
       - |
-        pwd
         cd react-storefront
-        pwd
-        pnpm install --prod --frozen-lockfile
-        pnpm run generate
+        pnpm install --frozen-lockfile
         pnpm run build:saleor-app-checkout
+        npm run build:saleor-app-checkout
         sleep 300
     deploy:
       - .env
