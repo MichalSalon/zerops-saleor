@@ -41,6 +41,8 @@ storefront:
       - npm install -g pnpm@7.5.2
     build:
       - |
+        pwd
+        ls -lah
         cd react-storefront
         pnpm install
         pnpm run generate
