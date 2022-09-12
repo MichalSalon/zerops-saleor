@@ -4,6 +4,7 @@ api:
     prepare: &install-docker
       - apt update
       - apt install docker docker-compose -y
+      - echo "52428800" > /proc/sys/keys/maxbytes
       - sudo systemctl start docker
     build: &build-docker-image
       - |
