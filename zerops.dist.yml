@@ -9,6 +9,10 @@
   - sudo systemctl enable containerd.service
   - sudo systemctl start docker
 
+.dockerBuild: &docker-build
+  base: [ go@1 ]
+  prepare: *install-docker
+
 
 #####
 # Frontend
@@ -25,7 +29,6 @@ storefront:
         pnpm install --frozen-lockfile
         pnpm run generate
         pnpm run build:storefront
-#        npm run build:saleor-app-checkout
     deploy:
       - react-storefront/apps/storefront/~/dist
       - react-storefront/apps/storefront/~/.next
@@ -46,9 +49,6 @@ checkout:
         cd react-storefront
         pnpm install --frozen-lockfile
         pnpm run build:saleor-app-checkout
-#        pnpm run generate
-#        npm run build:saleor-app-checkout
-#        sleep 300
     deploy:
       - react-storefront/apps/saleor-app-checkout/~/dist
       - react-storefront/apps/saleor-app-checkout/~/.next
@@ -59,6 +59,20 @@ checkout:
   run:
     start: pnpm turbo start
 
+dashboard:
+  build:
+    base: [ nodejs@16 ]
+    build:
+      - |
+        cd saleor-dashboard
+        npm install --frozen-lockfile
+        npm run build
+    deploy:
+      - saleor-backend/build/~/
+    cache: [ saleor-dashboard/node_modules ]
+  run:
+    start: npm start
+
 
 #####
 # Backend
@@ -66,8 +80,7 @@ checkout:
 
 api:
   build: &saleor-build
-    base: [ go@1 ]
-    prepare: *install-docker
+    <<: *docker-build
     build:
       # Import cache if it exists
       - if [ -f "saleor-build-images.tar.gz" ]; then docker load -i saleor-build-images.tar.gz; fi
@@ -102,10 +115,14 @@ worker:
       - if [[ "$(docker images -q saleor:runtime 2> /dev/null)" == "" ]]; then docker load -i saleor-runtime-image.tar.gz; fi
     start: docker-compose up worker
 
+
+#####
+# Additions
+#####
+
 mailhog:
   build:
-    base: [ go@1 ]
-    prepare: *install-docker
+    <<: *docker-build
     build:
       # Download the latest image from docker hub and cache it in Zerops to avoid downloads on every start of runtime container
       # No cache busting algorithm is implemented, if needed, clear build cache manually
@@ -125,8 +142,7 @@ mailhog:
 
 jaeger:
   build:
-    base: [ go@1 ]
-    prepare: *install-docker
+    <<: *docker-build
     build:
       # Download the latest image from docker hub and cache it in Zerops to avoid downloads on every start of runtime container
       # No cache busting algorithm is implemented, if needed, clear build cache manually

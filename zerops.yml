@@ -37,6 +37,19 @@ checkout:
     cache: [react-storefront/.turbo]
   run:
     start: pnpm turbo start
+dashboard:
+  build:
+    base: [nodejs@16]
+    build:
+      - |
+        cd saleor-dashboard
+        npm install --frozen-lockfile
+        npm run build
+    deploy:
+      - saleor-backend/build/~/
+    cache: [saleor-dashboard/node_modules]
+  run:
+    start: npm start
 api:
   build:
     base: [go@1]
