@@ -1,0 +1,145 @@
+#####
+# Shared configs
+#####
+
+.installDocker: &install-docker
+  - apt update
+  - apt install docker docker-compose -y
+  - sudo systemctl enable docker.service
+  - sudo systemctl enable containerd.service
+  - sudo systemctl start docker
+
+
+#####
+# Frontend
+#####
+
+storefront:
+  build:
+    base: [ nodejs@16 ]
+    prepare:
+      - npm install -g pnpm@7.5.2
+    build:
+      - |
+        cd react-storefront
+        pnpm install --frozen-lockfile
+        pnpm run generate
+        pnpm run build:storefront
+#        npm run build:saleor-app-checkout
+    deploy:
+      - react-storefront/apps/storefront/~/dist
+      - react-storefront/apps/storefront/~/.next
+      - react-storefront/apps/storefront/~/build
+      - react-storefront/apps/storefront/~/content/locales
+      - react-storefront/apps/storefront/~/content/compiled-locales
+    cache: [ react-storefront/.turbo ]
+  run:
+    start: pnpm turbo start
+
+checkout:
+  build:
+    base: [ nodejs@16 ]
+    prepare:
+      - npm install -g pnpm@7.5.2
+    build:
+      - |
+        cd react-storefront
+        pnpm install --frozen-lockfile
+        pnpm run build:saleor-app-checkout
+#        pnpm run generate
+#        npm run build:saleor-app-checkout
+#        sleep 300
+    deploy:
+      - react-storefront/apps/saleor-app-checkout/~/dist
+      - react-storefront/apps/saleor-app-checkout/~/.next
+      - react-storefront/apps/saleor-app-checkout/~/build
+      - react-storefront/apps/saleor-app-checkout/~/content/locales
+      - react-storefront/apps/saleor-app-checkout/~/content/compiled-locales
+    cache: [ react-storefront/.turbo ]
+  run:
+    start: pnpm turbo start
+
+
+#####
+# Backend
+#####
+
+api:
+  build: &saleor-build
+    base: [ go@1 ]
+    prepare: *install-docker
+    build:
+      # Import cache if it exists
+      - if [ -f "saleor-build-images.tar.gz" ]; then docker load -i saleor-build-images.tar.gz; fi
+      # Build intermediate step into separate image, for caching
+      - docker build --progress=plain --network=host --cache-from=saleor:build-python --cache-from=python:3.9 --target=build-python -t saleor:build-python saleor/.
+      # Build final runtime
+      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL="/static/" -t saleor:runtime saleor/.
+      # Save build images into cache
+      - docker save python saleor | pigz > saleor-build-images.tar.gz
+      # Save saleor runtime separately, so we can deploy it
+      - docker save saleor:runtime | pigz > saleor-runtime-image.tar.gz
+      # Remove all docker data to save on storage space (shouldn't be needed once prepare image is not affected byt build commands)
+      - docker system prune -af
+    deploy: [ docker-compose.yml, saleor-runtime-image.tar.gz, saleor/~/saleor/, saleor/~/templates/ ]
+    cache: [ saleor-build-images.tar.gz ]
+  run:
+    prepare: *install-docker
+    init:
+      # Load runtime image if it's not already loaded (no need to load it during every restart)
+      - if [[ "$(docker images -q saleor:runtime 2> /dev/null)" == "" ]]; then docker load -i saleor-runtime-image.tar.gz; fi
+      # DB migrations
+      - if [ -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate; fi
+      # Initial DB setup (after migrations, because of initialized.txt file check)
+      - if [ ! -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate && python manage.py createsuperuser --superuser_password=$SUPER_USER_PASSWORD; touch initialized.txt; fi
+    start: docker-compose up api
+
+worker:
+  build: *saleor-build
+  run:
+    prepare: *install-docker
+    init:
+      - if [[ "$(docker images -q saleor:runtime 2> /dev/null)" == "" ]]; then docker load -i saleor-runtime-image.tar.gz; fi
+    start: docker-compose up worker
+
+mailhog:
+  build:
+    base: [ go@1 ]
+    prepare: *install-docker
+    build:
+      # Download the latest image from docker hub and cache it in Zerops to avoid downloads on every start of runtime container
+      # No cache busting algorithm is implemented, if needed, clear build cache manually
+      - |
+        if [ -f "mailhog-image.tar.gz" ]; then exit 0; fi
+        docker pull mailhog/mailhog:latest
+        docker save mailhog/mailhog:latest | pigz > mailhog-image.tar.gz
+        docker system prune -af
+    deploy: [ docker-compose.yml, mailhog-image.tar.gz ]
+    cache: [ docker-compose.yml, mailhog-image.tar.gz ]
+  run:
+    prepare: *install-docker
+    init:
+      # Load image if it's not already loaded (no need to load it during every restart)
+      - if [[ "$(docker images -q mailhog/mailhog:latest 2> /dev/null)" == "" ]]; then docker load -i mailhog-image.tar.gz; fi
+    start: docker-compose up mailhog
+
+jaeger:
+  build:
+    base: [ go@1 ]
+    prepare: *install-docker
+    build:
+      # Download the latest image from docker hub and cache it in Zerops to avoid downloads on every start of runtime container
+      # No cache busting algorithm is implemented, if needed, clear build cache manually
+      - |
+        if [ -f "jaeger-image.tar.gz" ]; then exit 0; fi
+        docker pull jaegertracing/all-in-one:latest
+        docker save jaegertracing/all-in-one:latest | pigz > jaeger-image.tar.gz
+        docker system prune -af
+    deploy: [ docker-compose.yml, jaeger-image.tar.gz ]
+    cache: [ docker-compose.yml, jaeger-image.tar.gz ]
+  run:
+    prepare: *install-docker
+    init:
+      # Load image if it's not already loaded (no need to load it during every restart)
+      - if [[ "$(docker images -q jaegertracing/all-in-one:latest 2> /dev/null)" == "" ]]; then docker load -i jaeger-image.tar.gz; fi
+    start: docker-compose up jaeger
