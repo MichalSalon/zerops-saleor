@@ -61,14 +61,13 @@ checkout:
 
 dashboard:
   build:
-    base: [ nodejs@16 ]
+    base: [ nodejs@14 ]
     build:
       - |
         cd saleor-dashboard
-        npm install --frozen-lockfile
+        npm install --frozen-lockfile --omit=dev
         npm run build
-    deploy:
-      - saleor-backend/build/~/
+    deploy: [saleor-dashboard/build/dashboard/~/ ]
     cache: [ saleor-dashboard/node_modules ]
   run:
     start: npm start
@@ -101,10 +100,10 @@ api:
     init:
       # Load runtime image if it's not already loaded (no need to load it during every restart)
       - if [[ "$(docker images -q saleor:runtime 2> /dev/null)" == "" ]]; then docker load -i saleor-runtime-image.tar.gz; fi
-      # DB migrations
-      - if [ -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate; fi
-      # Initial DB setup (after migrations, because of initialized.txt file check)
-      - if [ ! -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate && python manage.py createsuperuser --superuser_password=$SUPER_USER_PASSWORD; touch initialized.txt; fi
+      # DB migrations (whoever made them for Django was retarded, because the return code 1 when there are no migrations to be done... FUCK IDEMPOTENCY
+      - docker-compose run --rm api "python manage.py migrate" || true
+      # Initial DB setup (after migrations, because they need to be run first)
+      - if [ ! -f initialized.txt ]; then docker-compose run --rm api "python manage.py createsuperuser --superuser_password=$SUPER_USER_PASSWORD"; touch initialized.txt; fi
     start: docker-compose up api
 
 worker:
@@ -117,7 +116,7 @@ worker:
 
 
 #####
-# Additions
+# Tools
 #####
 
 mailhog:

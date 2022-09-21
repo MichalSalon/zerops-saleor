@@ -1,0 +1,248 @@
+project:
+  name: saleor
+services:
+  - hostname: redis
+    priority: 10
+    type: keydb@6
+    mode: NON_HA
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 0.25
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+
+  - hostname: db
+    priority: 10
+    type: postgresql@12
+    mode: NON_HA
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 1
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+
+  - hostname: mailhog
+    priority: 9
+    type: go@1
+    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+    ports:
+      - port: 1025
+        httpSupport: true
+      - port: 8025
+        httpSupport: true
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 2
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+    minContainers: 1
+    maxContainers: 1
+
+  - hostname: jaeger
+    priority: 9
+    type: go@1
+    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+    ports:
+      - port: 5775
+        protocol: tcp
+      - port: 6831
+        protocol: tcp
+      - port: 6832
+        protocol: tcp
+      - port: 5778
+        httpSupport: true
+      - port: 16686
+        httpSupport: true
+      - port: 14268
+        httpSupport: true
+      - port: 9411
+        httpSupport: true
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 2
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+    minContainers: 1
+    maxContainers: 1
+
+  - hostname: api
+    priority: 8
+    type: go@1
+    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+    envVariables:
+      ALLOWED_HOSTS: 127.0.0.1, [::1], localhost, api-20015-8000.app.zerops.dev
+      CELERY_BROKER_URL: ${redis_connectionString}/1
+      DATABASE_URL: ${db_connectionString}/${db_hostname}
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      JAEGER_AGENT_HOST: ${jaeger_hostname}
+      SUPER_USER_PASSWORD: Twag6Z7rewanLQz2rJDuaa8TvZKB4efJiiKJHDy7gF7oq6MHo7
+      SECRET_KEY: Yjpz9CPJUAtK4wgQV7XA9y3LmT22xZAepeiZgmnPodgGZaXmRW
+      RSA_PRIVATE_KEY: |
+        -----BEGIN RSA PRIVATE KEY-----
+        MIICWgIBAAKBgHW1WBoga5i9eG8i9d5+QytZorQwbiA/eMIiZdCOjzra4CMcwPNn
+        8H3R+FNRxjf7KOhjvlKOHc4Xdc1943T/TM6tcia60T661LpfLKrf3Jk/BuFRrbxw
+        SlzMre2OMZUcj/v7WbG0IQjiRc6cY4VERQuZmacbs2ceBWUW6VuNqqNVAgMBAAEC
+        gYBnkslSPALRZK8Lg8S7IXjzNS1AxniwsYkNsfzK9hY8IIom+08hHu1zmQWcMxFr
+        Avqs+c9njxvU07nZtpMlyNuIpWVhau9dRU07+ig2mMqt9OrXFwdUr3VI3dlqoh9K
+        Lv4D2o2GvcGK1Fo2WT34BtddwDpFp2DGmS1Kjhmba55poQJBAOr55EZoZkJ9k+G1
+        gsDJn95VpT/vSVDHbj92D86YrPXDNEPT5C1CGqkIxPD9XlPPTS86RQe+ot5ki/oo
+        raYBCKkCQQCAPXHDQtJ96fcKlJlgVI+plzUFM3vVekqjtNRus1vxy0V/N7OGU/Xx
+        p6O5T3GpgC/SvEw72r5fA7ds4YXzTZTNAkADWF1klzXlem4xh2j+H6C0BJoep+Ru
+        TviF1MNy2H+V3BqRYKHd9xP0FhjfqWu/W7MomfbDnnYpHltTy2J1e4xJAkB5y+HU
+        dg69EA1VuzTAzQ91Hut4eSFP68ogGYr5aNgWmdzzqs+S8QNR9MoHInDtb5X8LGKr
+        JmJQk5MOklNKdZCxAkA1rV7yL6/f+LT+sEXO4/yrKvbCDN9LG8HxHSxEBFqVG5KH
+        qvyPY08s2KByORcptkGnCy7I6S5p82MYCC5j9198
+        -----END RSA PRIVATE KEY-----
+      RSA_PUBLIC_KEY: |
+        -----BEGIN PUBLIC KEY-----
+        MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHW1WBoga5i9eG8i9d5+QytZorQw
+        biA/eMIiZdCOjzra4CMcwPNn8H3R+FNRxjf7KOhjvlKOHc4Xdc1943T/TM6tcia6
+        0T661LpfLKrf3Jk/BuFRrbxwSlzMre2OMZUcj/v7WbG0IQjiRc6cY4VERQuZmacb
+        s2ceBWUW6VuNqqNVAgMBAAE=
+        -----END PUBLIC KEY-----
+    ports:
+      - port: 8000
+        httpSupport: true
+    verticalAutoscaling:
+      minVCpu: 5
+      maxVCpu: 20
+      minRam: 2
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+    minContainers: 1
+    maxContainers: 1
+
+  - hostname: worker
+    priority: 7
+    type: go@1
+    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+    envVariables:
+      CELERY_BROKER_URL: ${redis_connectionString}/1
+      DATABASE_URL: ${db_connectionString}/${db_hostname}
+      DEFAULT_FROM_EMAIL: noreply@example.com
+      JAEGER_AGENT_HOST: ${jaeger_hostname}
+      SECRET_KEY: ${api_SECRET_KEY}
+      RSA_PRIVATE_KEY: ${api_RSA_PRIVATE_KEY}
+      RSA_PUBLIC_KEY: ${api_RSA_PUBLIC_KEY}
+    ports:
+      - port: 8080
+        httpSupport: true
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 2
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+    minContainers: 1
+    maxContainers: 1
+
+  - hostname: dashboard
+    priority: 6
+    type: nginx@1.20
+    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+    envVariables:
+      API_URI: ${api_zeropsSubdomain}/graphql/
+      APP_MOUNT_URI: /
+      STATIC_URL: /
+    nginxConfig: |-
+      server {
+          listen 80 default_server;
+          listen [::]:80 default_server;
+
+          server_name _;
+          root /var/www;
+
+          location / {
+              index index.html;
+              try_files $uri $uri/ /index.html;
+          }
+
+          access_log syslog:server=unix:/dev/log,facility=local1 default_short;
+          error_log syslog:server=unix:/dev/log,facility=local1;
+      }
+    verticalAutoscaling:
+      minVCpu: 1
+      maxVCpu: 20
+      minRam: 0.25
+      maxRam: 32
+      minDisk: 1
+      maxDisk: 100
+    minContainers: 1
+    maxContainers: 4
+
+#  - hostname: storefront
+#    priority: 6
+#    type: nginx@1.20
+#    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+#    envVariables:
+#      API_URI: ${api_zeropsSubdomain}/graphql/
+#      APP_MOUNT_URI: /
+#      STATIC_URL: /
+#    nginxConfig: |-
+#      server {
+#          listen 80 default_server;
+#          listen [::]:80 default_server;
+#
+#          server_name _;
+#          root /var/www;
+#
+#          location / {
+#              index index.html;
+#              try_files $uri $uri/ /index.html;
+#          }
+#
+#          access_log syslog:server=unix:/dev/log,facility=local1 default_short;
+#          error_log syslog:server=unix:/dev/log,facility=local1;
+#      }
+#    verticalAutoscaling:
+#      minVCpu: 1
+#      maxVCpu: 20
+#      minRam: 0.25
+#      maxRam: 32
+#      minDisk: 1
+#      maxDisk: 100
+#    minContainers: 1
+#    maxContainers: 4
+#
+#  - hostname: checkout
+#    type: nginx@1.20
+#    buildFromGit: https://github.com/MichalSalon/zerops-saleor@main
+#    envVariables:
+#      API_URI: ${api_zeropsSubdomain}/graphql/
+#      APP_MOUNT_URI: /
+#      STATIC_URL: /
+#    nginxConfig: |-
+#      server {
+#          listen 80 default_server;
+#          listen [::]:80 default_server;
+#
+#          server_name _;
+#          root /var/www;
+#
+#          location / {
+#              index index.html;
+#              try_files $uri $uri/ /index.html;
+#          }
+#
+#          access_log syslog:server=unix:/dev/log,facility=local1 default_short;
+#          error_log syslog:server=unix:/dev/log,facility=local1;
+#      }
+#    verticalAutoscaling:
+#      minVCpu: 1
+#      maxVCpu: 20
+#      minRam: 0.25
+#      maxRam: 32
+#      minDisk: 1
+#      maxDisk: 100
+#    minContainers: 1
+#    maxContainers: 4

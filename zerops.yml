@@ -39,14 +39,13 @@ checkout:
     start: pnpm turbo start
 dashboard:
   build:
-    base: [nodejs@16]
+    base: [nodejs@14]
     build:
       - |
         cd saleor-dashboard
-        npm install --frozen-lockfile
+        npm install --frozen-lockfile --omit=dev
         npm run build
-    deploy:
-      - saleor-backend/build/~/
+    deploy: [saleor-dashboard/build/dashboard/~/]
     cache: [saleor-dashboard/node_modules]
   run:
     start: npm start
@@ -77,8 +76,8 @@ api:
       - sudo systemctl start docker
     init:
       - if [[ "$(docker images -q saleor:runtime 2> /dev/null)" == "" ]]; then docker load -i saleor-runtime-image.tar.gz; fi
-      - if [ -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate; fi
-      - if [ ! -f initialized.txt ]; then docker-compose run --rm api python manage.py migrate && python manage.py createsuperuser --superuser_password=$SUPER_USER_PASSWORD; touch initialized.txt; fi
+      - docker-compose run --rm api "python manage.py migrate" || true
+      - if [ ! -f initialized.txt ]; then docker-compose run --rm api "python manage.py createsuperuser --superuser_password=$SUPER_USER_PASSWORD"; touch initialized.txt; fi
     start: docker-compose up api
 worker:
   build:
