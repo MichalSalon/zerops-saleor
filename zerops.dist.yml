@@ -86,7 +86,7 @@ api:
       # Build intermediate step into separate image, for caching
       - docker build --progress=plain --network=host --cache-from=saleor:build-python --cache-from=python:3.9 --target=build-python -t saleor:build-python saleor/.
       # Build final runtime
-      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL="/static/" -t saleor:runtime saleor/.
+      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL=$STATIC_URL -t saleor:runtime saleor/.
       # Save build images into cache
       - docker save python saleor | pigz > saleor-build-images.tar.gz
       # Save saleor runtime separately, so we can deploy it

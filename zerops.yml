@@ -61,7 +61,7 @@ api:
     build:
       - if [ -f "saleor-build-images.tar.gz" ]; then docker load -i saleor-build-images.tar.gz; fi
       - docker build --progress=plain --network=host --cache-from=saleor:build-python --cache-from=python:3.9 --target=build-python -t saleor:build-python saleor/.
-      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL="/static/" -t saleor:runtime saleor/.
+      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL=$STATIC_URL -t saleor:runtime saleor/.
       - docker save python saleor | pigz > saleor-build-images.tar.gz
       - docker save saleor:runtime | pigz > saleor-runtime-image.tar.gz
       - docker system prune -af
@@ -91,7 +91,7 @@ worker:
     build:
       - if [ -f "saleor-build-images.tar.gz" ]; then docker load -i saleor-build-images.tar.gz; fi
       - docker build --progress=plain --network=host --cache-from=saleor:build-python --cache-from=python:3.9 --target=build-python -t saleor:build-python saleor/.
-      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL="/static/" -t saleor:runtime saleor/.
+      - docker build --progress=plain --network=host --cache-from=saleor:runtime --cache-from=saleor:build-python --cache-from=python:3.9-slim --build-arg STATIC_URL=$STATIC_URL -t saleor:runtime saleor/.
       - docker save python saleor | pigz > saleor-build-images.tar.gz
       - docker save saleor:runtime | pigz > saleor-runtime-image.tar.gz
       - docker system prune -af

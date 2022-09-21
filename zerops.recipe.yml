@@ -81,8 +81,9 @@ services:
       ALLOWED_HOSTS: 127.0.0.1, [::1], localhost, api-20015-8000.app.zerops.dev
       CELERY_BROKER_URL: ${redis_connectionString}/1
       DATABASE_URL: ${db_connectionString}/${db_hostname}
-      DEFAULT_FROM_EMAIL: noreply@example.com
       JAEGER_AGENT_HOST: ${jaeger_hostname}
+      STATIC_URL: /static/
+      DEFAULT_FROM_EMAIL: noreply@example.com
       SUPER_USER_PASSWORD: Twag6Z7rewanLQz2rJDuaa8TvZKB4efJiiKJHDy7gF7oq6MHo7
       SECRET_KEY: Yjpz9CPJUAtK4wgQV7XA9y3LmT22xZAepeiZgmnPodgGZaXmRW
       RSA_PRIVATE_KEY: |
@@ -128,8 +129,9 @@ services:
     envVariables:
       CELERY_BROKER_URL: ${redis_connectionString}/1
       DATABASE_URL: ${db_connectionString}/${db_hostname}
-      DEFAULT_FROM_EMAIL: noreply@example.com
       JAEGER_AGENT_HOST: ${jaeger_hostname}
+      STATIC_URL: ${api_STATIC_URL}
+      DEFAULT_FROM_EMAIL: ${api_DEFAULT_FROM_EMAIL}
       SECRET_KEY: ${api_SECRET_KEY}
       RSA_PRIVATE_KEY: ${api_RSA_PRIVATE_KEY}
       RSA_PUBLIC_KEY: ${api_RSA_PUBLIC_KEY}
